@@ -16,6 +16,7 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
     const alarme = data.alarme;
     const inCharge = data.inCharge;
     const date = data.date;
+    const levelBattery = data.levelBattery;
 
     const utilisationsColl = snap.ref.firestore.collection('Utilisations');
     const alarmColl = snap.ref.firestore.collection('Alarms');
@@ -34,11 +35,23 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
         promises.push(promiseAlarme);
     }
 
+    // on récupère les informations enregistrées dans le device
+
     device.get().then((doc) => {
         let message='';
         const dateLastAlarme = doc.data().lastAlarme.date;
         const dateInChargeStatus = doc.data().inCharge.date;
-        const inChargeStatus = doc.data().inCharge.status
+        const inChargeStatus = doc.data().inCharge.status;
+
+        // on met à jour le niveau de batterie du device
+        const levelBatteryPromise = device.update({
+            "levelBattery":levelBattery
+        })
+        promises.push(levelBatteryPromise);
+        message += 'nouvel enregistrement du niveau de batterie';
+
+        //on enregistre la nouvelle alarme si celle-ci existe et si sa date est supérieure à la dernier date d'alarme enregistrée
+
         if (dateLastAlarme.toDate() < date.toDate() && alarme.length > 0) {
             const promiseNewStatusAlarme = device.update({
                 "alarme.date": date,
@@ -49,12 +62,16 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
             promises.push(promiseNewStatusAlarme);
             message += ` nouvel enregistrement status alarme`;
         }
+
+        //on enregistre le nouvel status de la charge si celui-ci est différent du dernier enregistrement dans device
+
         if (dateInChargeStatus.toDate() < date.toDate() && inChargeStatus !== inCharge) {
             const promiseNewInChargeStatus = device.update({
                 "inCharge.date": date,
                 "inCharge.status": inCharge
             });
             promises.push(promiseNewInChargeStatus);
+            // et enregsitre également dans la database "utilisation"
             const promiseNewInCharge = utilisationsColl.add({
                 date,EIMI,inCharge
             });
@@ -64,6 +81,8 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
         return message
     }).then(mess => console.log(mess)).catch(err => console.log(err));
 
+
+    // on vérifie le nombre d'enregsitrement dans la trame et on limite sa quantité à 100 en virant les plus anciens
     trames.orderBy('date','asc').get().then((querySnap)=>{
         const size = querySnap.size;
         if(size>100){
