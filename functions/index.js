@@ -22,8 +22,8 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
     const alarmColl = snap.ref.firestore.collection('Alarms');
 
     // on vérifie si une alarme est présente et on enregistre si c'est le cas dans la base 'alarme' et modifie le status 'alarme' et 'lastalarme' du device
-
-    if (alarme.length > 0) {
+    //l'alarme n'est pas pris en compte si no motion alors le bip est en cours de charge
+    if (alarme.length > 0 && !(alarm[0] === "motion" && inCharge)) {
 
         const alarmRecord = {
             date,
@@ -51,8 +51,8 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
         message += 'nouvel enregistrement du niveau de batterie';
 
         //on enregistre la nouvelle alarme si celle-ci existe et si sa date est supérieure à la dernier date d'alarme enregistrée
-
-        if (dateLastAlarme.toDate() < date.toDate() && alarme.length > 0) {
+        //l'alarme n'est pas pris en compte si no motion alors le bip est en cours de charge
+        if (dateLastAlarme.toDate() < date.toDate() && (alarme.length > 0 && !(alarm[0] === "motion" && inCharge))) {
             const promiseNewStatusAlarme = device.update({
                 "alarme.date": date,
                 "alarme.type": alarme[0],
@@ -85,6 +85,7 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
     // on vérifie le nombre d'enregsitrement dans la trame et on limite sa quantité à 100 en virant les plus anciens
     trames.orderBy('date','asc').get().then((querySnap)=>{
         const size = querySnap.size;
+        let messDelete =""
         if(size>100){
             const nbr = size-30;
             snapArray = querySnap.docs;
@@ -92,10 +93,10 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
                 let promiseDelete = snapArray[i].ref.delete();
                 promises.push(promiseDelete);
             }
-            message +=` ${nbr} enregistrement(s) effacé(s)`
+            messDelete +=` ${nbr} enregistrement(s) effacé(s)`
 
         }
-        return message
+        return messDelete
     }).then(mess => console.log(mess)).catch(err => console.log(err));
 
     return Promise.all(promises)
