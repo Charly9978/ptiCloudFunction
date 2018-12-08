@@ -10,6 +10,7 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
 
     const trames = snap.ref.parent
     const device = snap.ref.parent.parent
+    const devices = device.parent
     const EIMI = device.id;
 
     const data = snap.data();
@@ -17,6 +18,8 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
     const inCharge = data.inCharge;
     const date = data.date;
     const levelBattery = data.levelBattery;
+
+    const lastConnectionDate = Date.now();
 
     const utilisationsColl = snap.ref.firestore.collection('Utilisations');
     const alarmColl = snap.ref.firestore.collection('Alarms');
@@ -45,10 +48,11 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
 
         // on met à jour le niveau de batterie du device
         const levelBatteryPromise = device.update({
-            "levelBattery":levelBattery
+            "levelBattery":levelBattery,
+            "lastConnectionDate":lastConnectionDate
         })
         promises.push(levelBatteryPromise);
-        message += 'nouvel enregistrement du niveau de batterie';
+        message += 'nouvel enregistrement du niveau de batterie et de la dernière connection';
 
         //on enregistre la nouvelle alarme si celle-ci existe et si sa date est supérieure à la dernier date d'alarme enregistrée
         //l'alarme n'est pas pris en compte si no motion alors le bip est en cours de charge
