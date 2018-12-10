@@ -19,14 +19,14 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
     const date = data.date;
     const levelBattery = data.levelBattery;
 
-    const lastConnectionDate = Date.now();
+    const lastConnectionDate = new Date();
 
     const utilisationsColl = snap.ref.firestore.collection('Utilisations');
     const alarmColl = snap.ref.firestore.collection('Alarms');
 
     // on vérifie si une alarme est présente et on enregistre si c'est le cas dans la base 'alarme' et modifie le status 'alarme' et 'lastalarme' du device
     //l'alarme n'est pas pris en compte si no motion alors le bip est en cours de charge
-    if (alarme.length > 0 && !(alarm[0] === "motion" && inCharge)) {
+    if (alarme.length > 0 && !(alarme[0] === "motion" && inCharge)) {
 
         const alarmRecord = {
             date,
@@ -49,14 +49,15 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
         // on met à jour le niveau de batterie du device
         const levelBatteryPromise = device.update({
             "levelBattery":levelBattery,
-            "lastConnectionDate":lastConnectionDate
+            "lastConnectionDate":lastConnectionDate,
+            "lostConnection":false
         })
         promises.push(levelBatteryPromise);
         message += 'nouvel enregistrement du niveau de batterie et de la dernière connection';
 
         //on enregistre la nouvelle alarme si celle-ci existe et si sa date est supérieure à la dernier date d'alarme enregistrée
         //l'alarme n'est pas pris en compte si no motion alors le bip est en cours de charge
-        if (dateLastAlarme.toDate() < date.toDate() && (alarme.length > 0 && !(alarm[0] === "motion" && inCharge))) {
+        if (dateLastAlarme.toDate() < date.toDate() && (alarme.length > 0 && !(alarme[0] === "motion" && inCharge))) {
             const promiseNewStatusAlarme = device.update({
                 "alarme.date": date,
                 "alarme.type": alarme[0],
