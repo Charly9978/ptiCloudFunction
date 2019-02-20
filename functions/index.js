@@ -57,7 +57,7 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
 
         //on enregistre la nouvelle alarme si celle-ci existe et si sa date est supérieure à la dernier date d'alarme enregistrée
         //l'alarme n'est pas pris en compte si no motion alors le bip est en cours de charge
-        if (dateLastAlarme.toDate() < date.toDate() && (alarme.length > 0 && !(alarme[0] === "motion" && inCharge))) {
+        if (dateLastAlarme < date && (alarme.length > 0 && !(alarme[0] === "motion" && inCharge))) {
             const promiseNewStatusAlarme = device.update({
                 "alarme.date": date,
                 "alarme.type": alarme[0],
@@ -70,7 +70,7 @@ exports.alarmFunction = functions.firestore.document('Devices/{deviceId}/trame/{
 
         //on enregistre le nouvel status de la charge si celui-ci est différent du dernier enregistrement dans device
 
-        if (dateInChargeStatus.toDate() < date.toDate() && inChargeStatus !== inCharge) {
+        if (dateInChargeStatus < date && inChargeStatus !== inCharge) {
             const promiseNewInChargeStatus = device.update({
                 "inCharge.date": date,
                 "inCharge.status": inCharge
